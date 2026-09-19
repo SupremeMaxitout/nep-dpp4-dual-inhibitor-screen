@@ -31,7 +31,7 @@ A structure is suitable for this pipeline if it meets all of the following:
    resolution, and for NEP the zinc-coordinating residue numbers as that entry numbers
    them. Residue numbering is not consistent across entries.
 4. Enter these into `config/targets.yaml`, replacing every `VERIFY` placeholder.
-5. Run `python scripts/01b_validate_docking.py --target nep`. If redocking RMSD comes
+5. Run `python scripts/01b_redock_validation.py --target nep`. If redocking RMSD comes
    back above 2.0 A, the structure or the grid box is wrong. Do not proceed past a
    failing validation.
 

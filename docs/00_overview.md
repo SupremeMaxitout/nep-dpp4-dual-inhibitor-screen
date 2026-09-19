@@ -21,7 +21,7 @@ making the science runnable by someone else.
 
 ## Stage 1 — Target preparation and docking validation
 
-`scripts/01_prepare_targets.py`, `scripts/01b_validate_docking.py`
+`scripts/01a_prepare_targets.py`, `scripts/01b_redock_validation.py`, `scripts/01c_enrichment_benchmark.py`
 
 **What it does.** Downloads the target structures, strips waters and crystallisation
 additives while retaining the catalytic zinc in neprilysin, adds hydrogens at

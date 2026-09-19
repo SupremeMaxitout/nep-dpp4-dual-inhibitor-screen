@@ -116,12 +116,17 @@ missing and where to get it. Run it first.
 Every stage script accepts `--limit N` to truncate the working set.
 
 ```bash
-# Quick demonstration run, finishes on a laptop
-python scripts/03_primary_docking.py --target nep --limit 500
+# Stage 1: prepare targets, then validate the protocol two ways
+python scripts/01a_prepare_targets.py --target all
+python scripts/01b_redock_validation.py --target nep
+python scripts/01c_enrichment_benchmark.py --target nep --limit 100
 
-# Full-scale run, assumes a cluster
-python scripts/03_primary_docking.py --target nep
+# Later stages accept --limit to truncate the working set
+python scripts/03_primary_docking.py --target nep --limit 500
 ```
+
+Stage 1 is documented in detail in [`docs/stage1.md`](docs/stage1.md). Do not skip
+the validation steps: nothing downstream is meaningful until both pass.
 
 Full-scale execution across both libraries is on the order of 10^5 docking
 calculations per target and is intended for HPC. SLURM submission templates are
