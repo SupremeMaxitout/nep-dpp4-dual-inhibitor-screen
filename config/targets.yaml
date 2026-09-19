@@ -1,0 +1,217 @@
+# ===========================================================================
+# Central configuration for the NEP / DPP-IV dual-inhibitor pipeline.
+#
+# Every tunable parameter lives here rather than inside a script. If you want
+# to change how the pipeline behaves, this is the only file you should need
+# to edit.
+#
+# >>> BEFORE YOUR FIRST RUN <<<
+# Entries marked  # VERIFY  are placeholders that must be confirmed against
+# the RCSB PDB before use. Do not assume they are correct. Instructions for
+# choosing and checking a structure are in docs/target_selection.md.
+# ===========================================================================
+
+project:
+  name: nep-dpp4-dual-inhibitor-screen
+  version: 0.1.0
+  random_seed: 42          # fixed everywhere, so runs are reproducible
+
+# ---------------------------------------------------------------------------
+# PRIMARY TARGETS
+# ---------------------------------------------------------------------------
+targets:
+
+  nep:
+    full_name: Neprilysin (neutral endopeptidase, NEP, CD10)
+    uniprot: P08473
+    chembl_id: CHEMBL1944
+
+    structure:
+      pdb_id: "1R1H"                 # VERIFY: human NEP ectodomain, inhibitor-bound
+      chain: "A"
+      resolution_cutoff_A: 2.5
+      # The co-crystallised ligand defines both the validation reference pose
+      # and the grid box. Set this to the HET code as it appears in the entry.
+      reference_ligand_hetcode: "VERIFY"
+
+    # Catalytic zinc. Neprilysin is a zinc metallopeptidase and this ion is
+    # the single most important feature of the site. It must be retained
+    # during receptor preparation, not stripped as a heteroatom.
+    metal:
+      present: true
+      element: ZN
+      coordinating_residues: ["HIS583", "HIS587", "GLU646"]   # VERIFY numbering
+
+    docking:
+      engine: autodock4                # not vina: see docs/installation.md §2
+      zinc_parameters: AD4Zn
+      exhaustiveness: 16
+      num_modes: 9
+      # Grid box: derived from the reference ligand centroid, padded.
+      # Leave centre as null to have 01_prepare_targets.py compute it.
+      grid:
+        center: null                   # [x, y, z] in Angstrom, or null to auto
+        size: [24.0, 24.0, 24.0]       # Angstrom; generous for a deep site
+        spacing: 0.375
+
+  dpp4:
+    full_name: Dipeptidyl peptidase-IV (DPP-4, CD26)
+    uniprot: P27487
+    chembl_id: CHEMBL284
+
+    structure:
+      pdb_id: "1X70"                   # VERIFY: human DPP-IV, inhibitor-bound
+      chain: "A"
+      resolution_cutoff_A: 2.5
+      reference_ligand_hetcode: "VERIFY"
+
+    metal:
+      present: false
+
+    docking:
+      engine: vina                     # Vina performs well on this site
+      exhaustiveness: 16
+      num_modes: 9
+      grid:
+        center: null
+        size: [22.0, 22.0, 22.0]
+        spacing: 0.375
+
+# ---------------------------------------------------------------------------
+# ANTITARGETS (stage 5 counter-screen)
+#
+# These are screened AGAINST. A compound that scores well here is penalised,
+# not rewarded.
+# ---------------------------------------------------------------------------
+antitargets:
+
+  ace:
+    full_name: Angiotensin-converting enzyme
+    uniprot: P12821
+    structure:
+      pdb_id: "1O86"                   # VERIFY: human somatic ACE, lisinopril-bound
+      chain: "A"
+    metal:
+      present: true
+      element: ZN
+    rationale: >-
+      Omapatrilat, a dual NEP/ACE inhibitor, failed in development because
+      combined NEP and ACE inhibition causes bradykinin accumulation and a
+      clinically unacceptable rate of angioedema. Any NEP inhibitor programme
+      must demonstrate ACE selectivity.
+
+  dpp8:
+    full_name: Dipeptidyl peptidase-8
+    uniprot: Q6V1X1
+    structure:
+      pdb_id: "VERIFY"                 # limited structural coverage; a homology
+                                       # model may be required. See docs.
+      chain: "A"
+    metal:
+      present: false
+    rationale: >-
+      DPP-8 and DPP-9 share the DPP-IV catalytic machinery. Cross-inhibition
+      is associated with toxicity in preclinical models, and selectivity over
+      DPP-8/9 is a standard requirement for gliptin-class compounds.
+
+# ---------------------------------------------------------------------------
+# LIBRARY CONSTRUCTION (stage 2)
+# ---------------------------------------------------------------------------
+library:
+  sources: [chembl, zinc]
+
+  # Bioactivity filter. Only compounds with a measured potency against the
+  # target of interest are retained.
+  activity:
+    measures: [IC50, Ki, Kd]
+    max_value_nM: 10000            # 10 uM ceiling; generous, for breadth
+    require_pchembl: true          # discard entries without a usable value
+    assay_confidence_min: 8        # ChEMBL confidence score, direct binding
+
+  # Physicochemical filter. Deliberately looser than Lipinski, because the
+  # dual pharmacophore this project pursues is zwitterionic and would be
+  # discarded by a strict rule-of-five gate.
+  properties:
+    mw_min: 150.0
+    mw_max: 600.0
+    logp_min: -2.0                 # permissive lower bound: zwitterions
+    logp_max: 5.5
+    hbd_max: 6
+    hba_max: 12
+    rotatable_bonds_max: 12
+    tpsa_max: 160.0
+
+  cleanup:
+    strip_salts: true
+    neutralise: false              # charge state matters here; do not flatten
+    remove_duplicates_by: inchikey
+    reject_pains: true             # discard known assay-interference motifs
+
+# ---------------------------------------------------------------------------
+# DOCKING CASCADE (stages 3 and 4)
+# ---------------------------------------------------------------------------
+docking:
+  rescoring:
+    # See docs/installation.md §4. vina_native needs no external install.
+    backend: vina_native           # vina_native | igmodel | rfscore_vs | mmgbsa
+
+  selection:
+    # The original project used a fixed -9.0 kcal/mol cutoff. That is retained
+    # as a fallback, but the preferred route is to calibrate the threshold from
+    # the stage-1 enrichment benchmark.
+    affinity_cutoff_kcal_mol: -9.0
+    calibrate_from_enrichment: true
+    target_enrichment_percentile: 1.0
+
+    # Ligand efficiency: affinity divided by heavy atom count. Ranking by LE
+    # instead of raw score removes the bias toward large, greasy molecules.
+    ligand_efficiency_min: 0.30
+    rank_by: ligand_efficiency     # ligand_efficiency | affinity | both
+
+  cross_docking:
+    # Molecules surviving their own target are docked against the other one.
+    # Dual actives are the intersection. This replaces the Tanimoto bridge
+    # used in the original; see docs/differences_from_original.md, row 5.
+    enabled: true
+    dual_activity_cutoff_kcal_mol: -8.0   # slightly relaxed on the second target
+
+# ---------------------------------------------------------------------------
+# SCAFFOLD ANALYSIS AND ENUMERATION (stage 5)
+# ---------------------------------------------------------------------------
+scaffolds:
+  extraction: murcko
+  min_occurrence: 3                # a scaffold must appear in >= 3 dual actives
+  max_scaffolds_forward: 20
+
+  # The dual-pharmacophore constraint, stated explicitly as SMARTS.
+  #
+  # NEP requires an anionic group able to coordinate the catalytic zinc.
+  # DPP-IV requires a basic nitrogen for the Glu205/Glu206 salt bridge.
+  # A molecule lacking either cannot plausibly hit both targets, so
+  # enumeration is constrained to structures carrying both.
+  pharmacophore_constraints:
+    zinc_binding_group:
+      required: true
+      smarts:
+        carboxylate: "[CX3](=O)[OX1H0-,OX2H1]"
+        hydroxamate: "[CX3](=O)[NX3][OX2H1]"
+        thiol: "[SX2H]"
+        phosphinate: "[PX4](=O)([OX1H0-,OX2H1])"
+    basic_nitrogen:
+      required: true
+      smarts:
+        primary_amine: "[NX3;H2;!$(NC=O)]"
+        secondary_amine: "[NX3;H1;!$(NC=O);!$(N-a)]"
+
+  enumeration:
+    engine: rdkit                  # replaces DataWarrior; scriptable
+    max_products_per_scaffold: 5000
+    synthetic_accessibility_max: 4.5   # SAscore; >4.5 is rarely worth making
+
+# ---------------------------------------------------------------------------
+# COMPUTE
+# ---------------------------------------------------------------------------
+compute:
+  n_workers: 8                     # overridden by --workers on the CLI
+  chunk_size: 500
+  checkpoint_every: 1000           # long runs resume rather than restart

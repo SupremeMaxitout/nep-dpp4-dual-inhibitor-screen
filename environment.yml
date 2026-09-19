@@ -1,0 +1,49 @@
+# Conda environment for the NEP / DPP-IV dual-inhibitor screening pipeline.
+#
+#   conda env create -f environment.yml
+#   conda activate nepdpp4
+#   python scripts/00_check_environment.py
+#
+# Versions are pinned to minor releases for reproducibility. Standalone
+# binaries not available through conda are covered in docs/installation.md.
+
+name: nepdpp4
+
+channels:
+  - conda-forge
+  - bioconda
+
+dependencies:
+  - python=3.11
+
+  # --- Cheminformatics core ---
+  - rdkit=2024.03           # molecular handling, fingerprints, scaffolds, SMARTS
+  - openbabel=3.1           # file format interconversion (SDF <-> PDBQT etc.)
+
+  # --- Docking ---
+  - vina=1.2.5              # AutoDock Vina, primary docking engine
+  - meeko=0.5               # modern ligand/receptor PDBQT preparation
+
+  # --- Data handling ---
+  - pandas=2.2
+  - numpy=1.26
+  - scipy=1.13
+  - pyyaml=6.0
+  - tqdm=4.66
+
+  # --- Analysis and plotting ---
+  - scikit-learn=1.5        # metrics (ROC-AUC, enrichment); modelling comes later
+  - matplotlib=3.8
+  - seaborn=0.13
+
+  # --- Structure handling ---
+  - biopython=1.83
+  - mdanalysis=2.7
+
+  # --- Notebooks (optional) ---
+  - jupyterlab=4.2
+
+  - pip
+  - pip:
+      - chembl-webresource-client==0.10.9   # ChEMBL REST API
+      - useful-rdkit-utils==0.6             # convenience wrappers

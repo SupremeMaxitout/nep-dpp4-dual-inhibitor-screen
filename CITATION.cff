@@ -1,0 +1,36 @@
+cff-version: 1.2.0
+title: >-
+  Dual Neprilysin / DPP-IV Inhibitor Discovery Pipeline:
+  a reproducible structure-based virtual screening workflow
+message: >-
+  If you use this software or refer to this pipeline, please cite it
+  using the metadata below.
+type: software
+authors:
+  - given-names: Mohammed Mujtaba Shahnawaz
+    family-names: Khan
+    # orcid: 'https://orcid.org/0000-0000-0000-0000'   # <- add yours
+repository-code: 'https://github.com/<YOUR-USERNAME>/nep-dpp4-dual-inhibitor-screen'
+abstract: >-
+  A reproducible structure-based virtual screening pipeline for the
+  identification of molecules with dual inhibitory activity against
+  neprilysin and dipeptidyl peptidase-IV, developed as a candidate
+  therapeutic strategy for type 2 diabetes in patients at risk of heart
+  failure with reduced ejection fraction. The workflow covers target
+  preparation and docking validation, database mining and library
+  construction, a docking and rescoring cascade, cross-target selection
+  for dual activity, and constrained scaffold enumeration with
+  antitarget counter-screening. This repository is a documented
+  reimplementation of an undergraduate research project.
+keywords:
+  - virtual screening
+  - molecular docking
+  - neprilysin
+  - DPP-IV
+  - dual inhibitor
+  - computer-aided drug design
+  - type 2 diabetes
+  - heart failure
+license: MIT
+version: 0.1.0
+date-released: '2026-09-19'
