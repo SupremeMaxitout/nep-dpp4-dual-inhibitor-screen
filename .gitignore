@@ -31,3 +31,11 @@ Thumbs.db
 *.log
 logs/
 slurm-*.out
+
+# LaTeX build artefacts
+report/*.aux
+report/*.log
+report/*.out
+report/*.toc
+report/*.synctex.gz
+report/report_docx.tex
